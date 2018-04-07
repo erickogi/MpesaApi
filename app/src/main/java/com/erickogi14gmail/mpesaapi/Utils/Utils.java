@@ -21,7 +21,7 @@ public class Utils {
             return null;
         }
 
-        if (phone.length() < 11 & phone.startsWith("0")) {
+        if (phone.length() < 11 & phone.startsWith("0") && phone.length() >= 9) {
             String p = phone.replaceFirst("^0", "254");
             return p;
         }

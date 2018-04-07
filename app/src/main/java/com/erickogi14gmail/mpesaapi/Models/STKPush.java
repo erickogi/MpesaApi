@@ -34,6 +34,7 @@ public class STKPush {
         this.transactionDesc = transactionDesc;
     }
 
+
     public int getProduction() {
         return Production;
     }

@@ -13,6 +13,9 @@ public class ApiConstants {
     public static final String ACCESS_TOKEN_URL = "oauth/v1/generate?grant_type=client_credentials";
     public static final String PROCESS_REQUEST_URL = "mpesa/stkpush/v1/processrequest";
 
+
+    public static final String C2B_SIMULATE = "mpesa/c2b/v1/simulate";
+
     public static final String DEFAULT_TRANSACTION_TYPE = "CustomerPayBillOnline";
 
 
@@ -25,11 +28,21 @@ public class ApiConstants {
     public static final String safaricom_Secret = "UcpmdCdI8bAakdgm";
 
 
-    public static final String callback_url = "https://erickogi.co.ke/mpesa";
+    public static final String callback_url = "http://erickogi.co.ke/Mpesaphp/callback.php";
 
 
     public static final int PRODUCTION_RELEASE = 1;
     public static final int PRODUCTION_DEBUG = 2;
+
+    public static final String BUYGOODS = "CustomerBuyGoodsOnline";
+    public static final String PAYBILL = "CustomerPayBillOnline";
+
+
+    public static final String Shortcode1 = "600535";
+    public static final String InitiatorNameShortcode1 = "testapi";
+    public static final String SecurityCredentialShortcode1 = "Safaricom535!";
+    public static final String TestMSISDN = "254708374149";
+    private static final String Shortcode2 = "600000";
 
 
 }

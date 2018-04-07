@@ -1,4 +1,14 @@
 <resources>
-    <string name="app_name">MpesaApi</string>
+    <string name="app_name">MpesaApi Demo</string>
     <string name="action_settings">Settings</string>
+
+    <string-array name="api">
+        <item>Lipa Na Mpesa</item>
+        <item>C2B Transact</item>
+        <item>Reversal</item>
+        <item>Account Balance</item>
+        <item>B2B</item>
+        <item>B2C</item>
+        <item>C2B Url Register</item>
+    </string-array>
 </resources>

@@ -1,18 +1,19 @@
 package com.erickogi14gmail.mpesaapi;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.Toast;
 
+import com.erickogi14gmail.mpesaapi.Models.C2BTransact;
 import com.erickogi14gmail.mpesaapi.Models.OAuth;
 import com.erickogi14gmail.mpesaapi.Models.STKPush;
 import com.erickogi14gmail.mpesaapi.NetworkUtills.ApiConstants;
@@ -26,6 +27,10 @@ import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity {
     private static String amount, phone;
+    private static String spinnertext;
+    private static Context context;
+    private static int spinnerPosition;
+    private static ProgressDialog progressDialog;
 
     /**
      * @param push
@@ -54,6 +59,23 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private static String generateC2BJsonStringParams(C2BTransact c2BTransact) {
+        JSONObject postData = new JSONObject();
+
+        try {
+            postData.put("ShortCode", c2BTransact.getShortCode());
+            postData.put("CommandID", c2BTransact.getCommandID());
+            postData.put("Amount", c2BTransact.getAmount());
+            postData.put("Msisdn", c2BTransact.getMsisdn());
+            postData.put("BillRefNumber", c2BTransact.getBillRefNumber());
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return postData.toString();
+
+    }
     /**
      * @param savedInstanceState
      */
@@ -64,9 +86,6 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(view -> Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show());
     }
 
     /**
@@ -99,10 +118,133 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    static void startTransaction(String result, Context context) {
+        if (result == null) {
+            Toast.makeText(context, "Error Getting Oauth Key", Toast.LENGTH_LONG).show();
+
+            return;
+        }
+
+
+        if (spinnerPosition == 0) {
+            STK(result);
+        } else if (spinnerPosition == 1) {
+            C2B(result);
+        } else {
+            Toast.makeText(context, "Awaiting implementation", Toast.LENGTH_LONG).show();
+
+            if (progressDialog != null && progressDialog.isShowing()) {
+                progressDialog.dismiss();
+            }
+        }
+
+
+    }
+
+    private static void C2B(String result) {
+        try {
+
+            JSONObject jsonObject = new JSONObject(result);
+            if (jsonObject.get("access_token") != null) {
+
+                String token = jsonObject.get("access_token").toString();
+
+
+                C2BTransact c2BTransact = new C2BTransact(
+                        ApiConstants.Shortcode1,
+                        ApiConstants.BUYGOODS,
+                        amount,
+                        ApiConstants.TestMSISDN, ""
+
+                );
+
+                //stkPush.setProduction(ApiConstants.PRODUCTION_RELEASE);
+
+
+                String url = ApiConstants.BASE_URL + ApiConstants.C2B_SIMULATE;
+
+                if (c2BTransact.getProduction() == ApiConstants.PRODUCTION_RELEASE) {
+                    url = ApiConstants.PRODUCTION_BASE_URL + ApiConstants.PROCESS_REQUEST_URL;
+                }
+
+
+                new PayService().execute(url, generateC2BJsonStringParams(c2BTransact), token);
+
+            }
+
+            return;
+        } catch (Exception ignored) {
+
+
+        }
+
+
+    }
+
+    private static Context getContext() {
+        return context;
+    }
+
+    private static void STK(String result) {
+        try {
+
+            JSONObject jsonObject = new JSONObject(result);
+            if (jsonObject.get("access_token") != null) {
+
+                String token = jsonObject.get("access_token").toString();
+
+
+                STKPush stkPush = new
+                        STKPush(
+                        ApiConstants.safaricom_bussiness_short_code,
+                        ApiConstants.DEFAULT_TRANSACTION_TYPE, amount,
+                        Utils.sanitizePhoneNumber(phone),
+                        ApiConstants.safaricom_party_b,
+                        Utils.sanitizePhoneNumber(phone),
+                        ApiConstants.callback_url,
+                        Utils.sanitizePhoneNumber(phone),
+                        "Pay");
+
+                //stkPush.setProduction(ApiConstants.PRODUCTION_RELEASE);
+
+
+                String url = ApiConstants.BASE_URL + ApiConstants.PROCESS_REQUEST_URL;
+
+                if (stkPush.getProduction() == ApiConstants.PRODUCTION_RELEASE) {
+                    url = ApiConstants.PRODUCTION_BASE_URL + ApiConstants.PROCESS_REQUEST_URL;
+                }
+
+
+                new PayService().execute(url, generateJsonStringParams(stkPush), token);
+
+            }
+
+            return;
+        } catch (Exception ignored) {
+
+
+        }
+    }
+
+    private int getSelection() {
+        return 0;
+    }
+
     /**
      * @param view
      */
     public void pay(View view) {
+
+        progressDialog = new ProgressDialog(MainActivity.this);
+
+        Spinner spinner = findViewById(R.id.spinner);
+        spinnertext = spinner.getSelectedItem().toString();
+        spinnerPosition = spinner.getSelectedItemPosition();
+
+        progressDialog.setCancelable(false);
+        progressDialog.setTitle(spinnertext);
+        progressDialog.setMessage("Processing payment");
+        progressDialog.show();
 
         EditText edtPhone = findViewById(R.id.edt_phone);
         EditText edtAmount = findViewById(R.id.edt_amount);
@@ -119,6 +261,9 @@ public class MainActivity extends AppCompatActivity {
                     ApiConstants.safaricom_Secret);
 
 
+            //oAuth.setProduction(ApiConstants.PRODUCTION_RELEASE);
+
+
             String url = ApiConstants.BASE_URL + ApiConstants.ACCESS_TOKEN_URL;
 
             if (oAuth.getProduction() == ApiConstants.PRODUCTION_RELEASE)
@@ -128,11 +273,15 @@ public class MainActivity extends AppCompatActivity {
             amount = edtAmount.getText().toString();
 
 
+            context = MainActivity.this;
             new AuthService(MainActivity.this).execute(url, oAuth.getOauth());
 
 
         } else {
-            Toast.makeText(MainActivity.this, "Fill required fields and have internet on", Toast.LENGTH_LONG).show();
+            if (progressDialog != null && progressDialog.isShowing()) {
+                progressDialog.dismiss();
+            }
+            Toast.makeText(MainActivity.this, "Fill required fields || have internet on || Use a correct phone number", Toast.LENGTH_LONG).show();
         }
 
     }
@@ -156,48 +305,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         protected void onPostExecute(String result) {
-            if (result == null) {
-                Toast.makeText(context, "Error Getting Oauth Key", Toast.LENGTH_LONG).show();
-
-                return;
-            }
-
-            try {
-
-                JSONObject jsonObject = new JSONObject(result);
-                if (jsonObject.get("access_token") != null) {
-
-                    String token = jsonObject.get("access_token").toString();
-
-
-                    STKPush stkPush = new
-                            STKPush(
-                            ApiConstants.safaricom_bussiness_short_code,
-                            ApiConstants.DEFAULT_TRANSACTION_TYPE, amount,
-                            Utils.sanitizePhoneNumber(phone),
-                            ApiConstants.safaricom_party_b,
-                            Utils.sanitizePhoneNumber(phone),
-                            ApiConstants.callback_url,
-                            Utils.sanitizePhoneNumber(phone),
-                            "Pay");
-
-
-                    String url = ApiConstants.BASE_URL + ApiConstants.PROCESS_REQUEST_URL;
-
-                    if (stkPush.getProduction() == ApiConstants.PRODUCTION_RELEASE) {
-                        url = ApiConstants.PRODUCTION_BASE_URL + ApiConstants.PROCESS_REQUEST_URL;
-                    }
-
-
-                    new PayService().execute(url, generateJsonStringParams(stkPush), token);
-
-                }
-
-                return;
-            } catch (Exception ignored) {
-
-
-            }
+            startTransaction(result, context);
         }
     }
 
@@ -210,7 +318,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         protected void onPostExecute(String result) {
-
+            if (progressDialog != null && progressDialog.isShowing()) {
+                progressDialog.dismiss();
+            }
+            if (spinnerPosition != 0) {
+                Toast.makeText(getContext(), result, Toast.LENGTH_LONG).show();
+            }
         }
     }
 }
